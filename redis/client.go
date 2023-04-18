@@ -346,6 +346,7 @@ func (c *Client) Expire(key string, seconds int) *goja.Promise {
 }
 
 // Ttl returns the remaining time to live of a key that has a timeout.
+//
 //nolint:revive,stylecheck
 func (c *Client) Ttl(key string) *goja.Promise {
 	promise, resolve, reject := c.makeHandledPromise()
@@ -695,6 +696,30 @@ func (c *Client) Hget(key, field string) *goja.Promise {
 
 	go func() {
 		value, err := c.redisClient.HGet(c.vu.Context(), key, field).Result()
+		if err != nil {
+			reject(err)
+			return
+		}
+
+		resolve(value)
+	}()
+
+	return promise
+}
+
+// HMget returns the values associated with `fields` in the hash stored at `key`.
+//
+// If the hash does not exist, this command rejects the promise with an error.
+func (c *Client) HMget(key string, fields ...string) *goja.Promise {
+	promise, resolve, reject := c.makeHandledPromise()
+
+	if err := c.connect(); err != nil {
+		reject(err)
+		return promise
+	}
+
+	go func() {
+		value, err := c.redisClient.HMGet(c.vu.Context(), key, fields...).Result()
 		if err != nil {
 			reject(err)
 			return
